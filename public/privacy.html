@@ -521,8 +521,9 @@
         </li>
         <li>
           When OneDrive or SharePoint opens a drawing with the File Handler preview, it POSTs a
-          Microsoft Graph link for that file. The preview host passes that link into your browser
-          session and does not store it.
+          Microsoft Graph link for that file. A small edge script accepts that POST and passes the
+          link into your browser (session storage or the page URL fragment). It is not stored on a
+          server.
         </li>
         <li>
           Access tokens are kept in the browser session for Microsoft Graph / OneDrive API calls;

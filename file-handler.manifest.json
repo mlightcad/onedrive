@@ -8,7 +8,7 @@
     },
     {
       "key": "actions",
-      "value": "[{\"type\":\"preview\",\"url\":\"https://mlightcad.com/onedrive/preview\",\"availableOn\":{\"file\":{\"extensions\":[\".dwg\",\".dxf\"]},\"web\":{}}}]"
+      "value": "[{\"type\":\"preview\",\"url\":\"https://mlightcad-onedrive-file-handler.mlightcad.workers.dev/\",\"availableOn\":{\"file\":{\"extensions\":[\".dwg\",\".dxf\"]},\"web\":{}}}]"
     }
   ]
 }

@@ -87,7 +87,42 @@ Optional deep link: `?driveId=...&itemId=...` opens a known Drive item after sig
 
 This repo deploys with GitHub Actions to GitHub Pages. Because [mlightcad.com](https://mlightcad.com/) is already the organization site’s custom domain, the project is published at `https://mlightcad.com/onedrive/`. Do not add a separate custom domain or `CNAME` on [mlightcad/onedrive](https://github.com/mlightcad/onedrive).
 
-The registered File Handler URL is `https://mlightcad.com/onedrive/preview`. The Pages build serves the viewer there (`preview/index.html`). OneDrive sends the file as a form POST, and `mlightcad.com` answers every POST with `405` before the page runs, so that click does not deliver the file. Personal OneDrive does not support File Handlers. See [ONEDRIVE_APP_SETUP.md](./ONEDRIVE_APP_SETUP.md).
+The viewer is published at `https://mlightcad.com/onedrive/`. OneDrive File Handler preview is a POST with the Graph file link, which GitHub Pages cannot accept (CDN `405`). Production preview must use the Cloudflare Worker in [`cloudflare/file-handler-worker.js`](./cloudflare/file-handler-worker.js) as the File Handler URL; it hands the payload to the static app via the URL hash. Personal OneDrive does not support File Handlers. See [ONEDRIVE_APP_SETUP.md](./ONEDRIVE_APP_SETUP.md).
+
+## Local File Handler testing
+
+The easy path only asks you to sign in:
+
+```bash
+pnpm demo:file-handler
+```
+
+That starts `pnpm dev` if needed, then opens `http://localhost:5173/onedrive/?fileHandlerDemo=1`. After Microsoft sign-in (skipped if a session already exists), the app searches OneDrive for a `.dwg` / `.dxf`, POSTs it to `/onedrive/preview` the same way OneDrive would, and opens the drawing. If no CAD file is found, use the picker once. Keep a DWG or DXF in that OneDrive account. Press Ctrl+C in the terminal if this command started the dev server.
+
+The demo query string only works on `localhost`. It is not available on GitHub Pages.
+
+### Check the POST handoff with known ids
+
+You can also drive the local POST yourself. Keep `pnpm dev` on port **5173**, then:
+
+```bash
+pnpm verify:file-handler -- --drive-id YOUR_DRIVE_ID --item-id YOUR_ITEM_ID --open
+```
+
+Or with a full Graph URL:
+
+```bash
+pnpm verify:file-handler -- --item-url "https://graph.microsoft.com/v1.0/drives/YOUR_DRIVE_ID/items/YOUR_ITEM_ID" --open
+```
+
+The script checks that the local viewer is up, POSTs `/onedrive/preview`, and validates the handoff HTML. `--open` opens the production-style hash URL in the browser. Optionally add `--worker https://mlightcad-onedrive-file-handler.mlightcad.workers.dev/` to POST the same body to the deployed Worker.
+
+| Result | Meaning |
+|--------|---------|
+| Preview sign-in screen appears | Activation handoff worked |
+| Drawing opens after sign-in | Full local File Handler path worked |
+| Normal “choose a file” welcome screen | Activation was not read (wrong port/path, or POST failed) |
+| Sign-in works but file fails to open | Bad Graph item URL, or the signed-in account cannot read that item |
 
 ## Project Structure
 
@@ -100,8 +135,14 @@ src/
 ├── mlightcadEmbed.ts # Embed URL helpers
 └── styles.css        # App styles
 server/
-├── fileHandler.mjs   # POST /onedrive/preview
+├── fileHandler.mjs   # Local POST /onedrive/preview
 └── start.mjs         # Production static host + File Handler POST
+cloudflare/
+├── file-handler-worker.js  # POST hop for GitHub Pages
+└── wrangler.toml
+scripts/
+├── demo-file-handler.mjs   # Start dev server and open the sign-in demo
+└── verify-file-handler.mjs # Local File Handler handoff check
 ```
 
 ## API Permissions

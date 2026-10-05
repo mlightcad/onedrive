@@ -1,7 +1,13 @@
 import './styles.css'
 
 import { CadEmbedViewer } from './cadEmbed'
-import { FileHandlerActivation, isInFrame, takeFileHandlerActivation } from './fileHandler'
+import {
+  FileHandlerActivation,
+  isInFrame,
+  isLocalFileHandlerDemo,
+  postLocalFileHandlerPreview,
+  takeFileHandlerActivation
+} from './fileHandler'
 import { DriveFile, isConfigured, OneDriveClient } from './oneDrive'
 import { initSiteNav } from './siteNav'
 
@@ -37,6 +43,7 @@ viewer.mount()
 let selectedFile: DriveFile | null = null
 let loadGeneration = 0
 let fileHandler: FileHandlerActivation | null = null
+const fileHandlerDemo = isLocalFileHandlerDemo()
 
 function show(el: HTMLElement, visible: boolean): void {
   el.hidden = !visible
@@ -158,6 +165,13 @@ async function handlePickFile(popup: Window): Promise<void> {
   pickFileBtn.disabled = true
   try {
     const file = await drive.openFilePicker(popup)
+    if (fileHandlerDemo) {
+      postLocalFileHandlerPreview(
+        drive.graphItemUrl(file.driveId, file.id),
+        drive.userInfo.email
+      )
+      return
+    }
     await loadFileBuffer(file)
   } catch (error) {
     try {
@@ -189,16 +203,32 @@ async function openFileHandlerItem(): Promise<void> {
   await loadFileBuffer(details)
 }
 
-async function handleSignIn(): Promise<void> {
+function openPickerPopup(message: string): Window | null {
+  const popup = window.open('', 'OneDrivePicker', 'width=1080,height=680')
+  if (!popup) return null
+  popup.document.title = 'OneDrive'
+  popup.document.body.textContent = message
+  return popup
+}
+
+async function handleSignIn(popup?: Window): Promise<void> {
   signInBtn.disabled = true
   show(authLayout, true)
   show(bootPanel, true)
   show(authPanel, false)
   try {
-    await drive.authenticate(
-      fileHandler?.userId ? { loginHint: fileHandler.userId } : undefined
-    )
+    await drive.authenticate({
+      loginHint: fileHandler?.userId || undefined,
+      popup
+    })
   } catch (error) {
+    if (popup) {
+      try {
+        if (!popup.closed) popup.close()
+      } catch {
+        // The sign-in window may already be gone.
+      }
+    }
     console.error('Authentication failed:', error)
     alert(error instanceof Error ? error.message : 'Microsoft authorization failed')
     renderAuthState()
@@ -217,6 +247,14 @@ async function handleSignIn(): Promise<void> {
       alert(error instanceof Error ? error.message : 'Failed to preview OneDrive file')
       renderAuthState()
     }
+    return
+  }
+  if (fileHandlerDemo) {
+    await continueFileHandlerDemo()
+    return
+  }
+  if (popup) {
+    await handlePickFile(popup)
   }
 }
 
@@ -255,17 +293,24 @@ async function handleDeepLinkOpen(): Promise<void> {
 }
 
 signInBtn.addEventListener('click', () => {
-  void handleSignIn()
-})
-signOutBtn.addEventListener('click', handleSignOut)
-pickFileBtn.addEventListener('click', () => {
-  const popup = window.open('', 'OneDrivePicker', 'width=1080,height=680')
+  if (fileHandler || fileHandlerDemo) {
+    void handleSignIn()
+    return
+  }
+  const popup = openPickerPopup('Signing in…')
   if (!popup) {
     alert('Popup blocked. Allow popups for this site and try again.')
     return
   }
-  popup.document.title = 'OneDrive'
-  popup.document.body.textContent = 'Opening OneDrive…'
+  void handleSignIn(popup)
+})
+signOutBtn.addEventListener('click', handleSignOut)
+pickFileBtn.addEventListener('click', () => {
+  const popup = openPickerPopup('Opening OneDrive…')
+  if (!popup) {
+    alert('Popup blocked. Allow popups for this site and try again.')
+    return
+  }
   void handlePickFile(popup)
 })
 retryBtn.addEventListener('click', () => {
@@ -329,7 +374,54 @@ async function boot(): Promise<void> {
     return
   }
 
+  if (fileHandlerDemo) {
+    await handleFileHandlerDemoEntry()
+    return
+  }
+
   renderAuthState()
+}
+
+async function handleFileHandlerDemoEntry(): Promise<void> {
+  authTitle.textContent = 'Sign in to test File Handler preview'
+  show(pickFileBtn, false)
+  show(authLayout, true)
+  show(bootPanel, true)
+  show(authPanel, false)
+  show(workspacePanel, false)
+
+  if (!drive.isAuthenticated) {
+    renderAuthState()
+    show(pickFileBtn, false)
+    return
+  }
+
+  await continueFileHandlerDemo()
+}
+
+async function continueFileHandlerDemo(): Promise<void> {
+  show(authLayout, true)
+  show(bootPanel, true)
+  show(authPanel, false)
+  const bootCopy = bootPanel.querySelector('p')
+  if (bootCopy) bootCopy.textContent = 'Looking for a DWG or DXF in OneDrive…'
+
+  try {
+    const itemUrl = await drive.findCadPreviewItemUrl()
+    if (itemUrl) {
+      postLocalFileHandlerPreview(itemUrl, drive.userInfo.email)
+      return
+    }
+    renderAuthState()
+    show(pickFileBtn, true)
+    welcome.querySelector('p')!.textContent =
+      'No DWG/DXF found automatically. Choose one to continue the File Handler test.'
+    setFileLoadUi('idle')
+  } catch (error) {
+    console.error('File Handler demo failed:', error)
+    alert(error instanceof Error ? error.message : 'Failed to start File Handler demo')
+    renderAuthState()
+  }
 }
 
 void boot()
