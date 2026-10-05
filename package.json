@@ -14,7 +14,10 @@
     "lint": "eslint src/",
     "lint:fix": "eslint --fix --quiet src/",
     "preview": "vite preview",
-    "start": "node server/start.mjs"
+    "start": "node server/start.mjs",
+    "deploy:file-handler": "npx wrangler deploy --config cloudflare/wrangler.toml",
+    "verify:file-handler": "node scripts/verify-file-handler.mjs",
+    "demo:file-handler": "node scripts/demo-file-handler.mjs"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.12.0"

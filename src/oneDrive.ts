@@ -337,7 +337,7 @@ export class OneDriveClient {
     this.driveKind = classifyDrive(drive.driveType, this.driveWebUrl)
   }
 
-  async authenticate(options?: { loginHint?: string }): Promise<void> {
+  async authenticate(options?: { loginHint?: string; popup?: Window }): Promise<void> {
     if (!isConfigured()) {
       throw new Error(
         'Microsoft credentials not configured. Set VITE_MSAL_CLIENT_ID in .env.local.'
@@ -348,12 +348,15 @@ export class OneDriveClient {
     const msal = this.ensureMsal()
     const loginHint = options?.loginHint || undefined
     const useAccountPicker = !loginHint && !this.isAuthenticated
-
-    const result: AuthenticationResult = await msal.loginPopup({
+    const request = {
       scopes: GRAPH_SCOPES,
       loginHint,
-      prompt: useAccountPicker ? 'select_account' : undefined
-    })
+      prompt: useAccountPicker ? ('select_account' as const) : undefined
+    }
+
+    const result: AuthenticationResult = options?.popup
+      ? await this.loginInExistingPopup(msal, request, options.popup)
+      : await msal.loginPopup(request)
 
     if (!result.account) {
       throw new Error('Microsoft sign-in did not return an account')
@@ -361,6 +364,46 @@ export class OneDriveClient {
 
     this.setAccount(result.account)
     await this.loadProfileAndDrive()
+  }
+
+  /**
+   * MSAL opens its own popup and closes it when sign-in finishes. Reuse the
+   * picker window instead, so the click only creates one popup and the file
+   * picker can continue in it after authentication.
+   */
+  private async loginInExistingPopup(
+    msal: PublicClientApplication,
+    request: {
+      scopes: string[]
+      loginHint?: string
+      prompt?: 'select_account'
+    },
+    popup: Window
+  ): Promise<AuthenticationResult> {
+    if (popup.closed) {
+      throw new Error('Popup blocked. Allow popups for this site and try again.')
+    }
+
+    const originalOpen = window.open.bind(window)
+    const originalClose = Window.prototype.close
+    window.open = ((url?: string | URL) => {
+      const href = url == null ? '' : String(url)
+      if (href && href !== 'about:blank') {
+        popup.location.assign(href)
+      }
+      return popup
+    }) as typeof window.open
+    Window.prototype.close = function (this: Window) {
+      if (this === popup || this.name === 'OneDrivePicker') return
+      return originalClose.call(this)
+    }
+
+    try {
+      return await msal.loginPopup(request)
+    } finally {
+      window.open = originalOpen
+      Window.prototype.close = originalClose
+    }
   }
 
   signOut(): void {
@@ -422,6 +465,60 @@ export class OneDriveClient {
       mimeType: meta.file?.mimeType || 'application/octet-stream',
       downloadUrl: extractDownloadUrl(meta)
     }
+  }
+
+  graphItemUrl(driveId: string, itemId: string): string {
+    return this.itemApiUrl(driveId, itemId)
+  }
+
+  /**
+   * Find a DWG/DXF in the signed-in user's drive for the local File Handler demo.
+   */
+  async findCadPreviewItemUrl(): Promise<string | null> {
+    const queries = ['.dwg', 'dwg', '.dxf', 'dxf']
+    for (const query of queries) {
+      const found = await this.searchCadItem(query)
+      if (found) return found
+    }
+    return this.firstRecentCadItem()
+  }
+
+  private cadItemUrl(item: DriveItemMeta): string | null {
+    if (!item.id || !item.name || !isCadFileName(item.name)) return null
+    const driveId = item.parentReference?.driveId
+    if (!driveId) return null
+    return this.itemApiUrl(driveId, item.id)
+  }
+
+  private async searchCadItem(query: string): Promise<string | null> {
+    if (!/^[.a-z0-9]+$/i.test(query)) return null
+    try {
+      const result = await this.graphGet<{ value?: DriveItemMeta[] }>(
+        `/me/drive/root/search(q='${query}')?$top=25&$select=id,name,file,parentReference`
+      )
+      for (const item of result.value || []) {
+        const url = this.cadItemUrl(item)
+        if (url) return url
+      }
+    } catch {
+      // Search is unavailable for some account types; fall through.
+    }
+    return null
+  }
+
+  private async firstRecentCadItem(): Promise<string | null> {
+    try {
+      const result = await this.graphGet<{ value?: DriveItemMeta[] }>(
+        '/me/drive/recent?$top=25&$select=id,name,file,parentReference'
+      )
+      for (const item of result.value || []) {
+        const url = this.cadItemUrl(item)
+        if (url) return url
+      }
+    } catch {
+      // Recent is optional.
+    }
+    return null
   }
 
   async getFileDetails(driveId: string, itemId: string): Promise<DriveFile> {
@@ -737,6 +834,16 @@ export class OneDriveClient {
   }
 
   private async launchPickerWindow(win: Window, channelId: string): Promise<void> {
+    try {
+      win.document.open()
+      win.document.write(
+        '<!DOCTYPE html><html><head><title>OneDrive</title></head><body></body></html>'
+      )
+      win.document.close()
+    } catch {
+      throw new Error('The sign-in window closed before OneDrive could open')
+    }
+
     const messaging = {
       origin: window.location.origin,
       channelId

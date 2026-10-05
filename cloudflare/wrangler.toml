@@ -1,0 +1,11 @@
+# Standalone File Handler Worker — not the Vite GitHub Pages app.
+# From the repo root:
+#   npx wrangler deploy --config cloudflare/wrangler.toml
+# Do not run `npx wrangler deploy` in the repo root; Wrangler will try to
+# publish the Vite site and require Vite 6.
+name = "mlightcad-onedrive-file-handler"
+main = "file-handler-worker.js"
+compatibility_date = "2024-10-01"
+
+[vars]
+VIEWER_URL = "https://mlightcad.com/onedrive/"

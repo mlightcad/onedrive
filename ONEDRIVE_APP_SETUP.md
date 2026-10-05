@@ -112,6 +112,18 @@ A copy of that add-in is in [`file-handler.manifest.json`](./file-handler.manife
 
 OneDrive does not open that address with a GET. It POSTs a form body containing the Graph file link. `mlightcad.com` is GitHub Pages, and a POST to that host is rejected with `405 Method Not Allowed` by the CDN before this app runs. Publishing the repository makes the page exist, but it does not make click-to-preview receive the file.
 
+A static site cannot read that POST. The smallest fix is a Cloudflare Worker (no Node server, no database). The Worker is the File Handler URL: it accepts the POST, then sends the iframe to `https://mlightcad.com/onedrive/#fileHandler=…`. The viewer already on GitHub Pages reads the hash and loads the drawing. GitHub Pages still only serves GET.
+
+### Cloudflare Worker (production File Handler)
+
+1. Create a Worker in the [Cloudflare dashboard](https://dash.cloudflare.com/) (free tier is enough).
+2. Paste [`cloudflare/file-handler-worker.js`](./cloudflare/file-handler-worker.js), or from this repo run `pnpm deploy:file-handler` (that is `npx wrangler deploy --config cloudflare/wrangler.toml`). Do not run `npx wrangler deploy` in the repo root: Wrangler will treat this as a Vite app and fail unless Vite is 6+.
+3. Give it a hostname on your domain, for example `https://onedrive-preview.mlightcad.com` (Workers custom domain), so the File Handler stays under the same publisher site. A `*.workers.dev` URL also works.
+4. In Entra, set the File Handler preview URL to that Worker origin (path can be `/` or `/preview`; the script accepts both). Update [`file-handler.manifest.json`](./file-handler.manifest.json) to match.
+5. Do not point the File Handler at `https://mlightcad.com/onedrive/preview` unless that path is routed to the Worker. GitHub Pages will keep answering POST with 405.
+
+The Worker does not download DWG bytes or talk to Microsoft Graph. It only forwards the Graph item URLs in the URL fragment (the fragment is not sent to GitHub Pages).
+
 `pnpm dev` still accepts that POST at `http://localhost:5173/onedrive/preview` so the handoff can be tested locally. The body is written into `sessionStorage` and the app opens at `/onedrive/`. `items` is a JSON array of Graph item URLs. Fields are `items`, `userId`, `cultureName`, `client`, and `domainHint`.
 
 ## References
