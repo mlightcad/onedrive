@@ -39,7 +39,8 @@ export default defineConfig({
     modulePreload: false,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
+        main: resolve(__dirname, 'index.html'),
+        privacy: resolve(__dirname, 'privacy.html')
       }
     }
   }
