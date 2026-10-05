@@ -53,8 +53,10 @@ function takeFileHandlerActivationFromHash(): FileHandlerActivation | null {
   if (!fragment) return null
   const raw = new URLSearchParams(fragment).get(FILE_HANDLER_HASH_KEY)
   if (!raw) return null
+  const activation = parseActivationJson(raw)
+  if (!activation) return null
   history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
-  return parseActivationJson(raw)
+  return activation
 }
 
 /** Read and clear the payload left by the File Handler POST handoff. */

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B0F14" />
+    <title>Privacy Policy — OneDrive CAD Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;500&family=Syne:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #0b0f14;
+        --paper: #e8eef5;
+        --steel: #8b9bb4;
+        --steel-dim: #5a6a82;
+        --cyan: #3ddcff;
+        --cyan-dim: rgba(61, 220, 255, 0.14);
+        --amber: #e8a54b;
+        --amber-ink: #0b0f14;
+        --line: rgba(232, 238, 245, 0.12);
+        --font-display: 'Syne', 'Segoe UI', sans-serif;
+        --font-body: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+        --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+        --space-3: 1rem;
+        --space-4: 1.5rem;
+        --space-5: 2.5rem;
+        --space-6: 4rem;
+        --max: 1120px;
+        --nav-h: 4rem;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        color: var(--paper);
+        background: var(--ink);
+        font-family: var(--font-body);
+        line-height: 1.6;
+      }
+
+      [data-site-nav] {
+        display: block;
+        flex-shrink: 0;
+        min-height: var(--nav-h);
+      }
+
+      [data-site-footer] {
+        display: block;
+        flex-shrink: 0;
+        width: 100%;
+        margin-top: auto;
+      }
+
+      .page-body {
+        flex: 1;
+        width: min(100% - 2.5rem, 720px);
+        margin: 0 auto;
+        padding: 40px 0 64px;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin: 0 0 24px;
+        color: var(--cyan);
+        text-decoration: none;
+        font-size: 0.95rem;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--paper);
+      }
+
+      h2 {
+        margin: 28px 0 8px;
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--paper);
+      }
+
+      p,
+      li {
+        color: var(--steel);
+      }
+
+      strong {
+        color: var(--paper);
+        font-weight: 500;
+      }
+
+      .meta {
+        color: var(--steel-dim);
+        margin: 0 0 24px;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+      }
+
+      a {
+        color: var(--cyan);
+      }
+
+      .nav a {
+        color: inherit;
+      }
+
+      ul {
+        padding-left: 1.25rem;
+      }
+
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.86em;
+        color: var(--cyan);
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-site-nav></div>
+    <article id="privacy-article" class="page-body"></article>
+    <div data-site-footer></div>
+    <script type="module" src="/src/privacyPage.ts"></script>
+  </body>
+</html>

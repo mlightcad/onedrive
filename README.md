@@ -133,6 +133,9 @@ src/
 ├── fileHandler.ts    # File Handler activation handoff
 ├── cadEmbed.ts       # MLightCAD iframe + postMessage
 ├── mlightcadEmbed.ts # Embed URL helpers
+├── siteChrome.ts     # Loads shared header/footer from mlightcad.com
+├── i18n.ts           # App locale + copy
+├── privacyPage.ts    # Privacy policy page
 └── styles.css        # App styles
 server/
 ├── fileHandler.mjs   # Local POST /onedrive/preview
@@ -161,6 +164,8 @@ This app does **not** bundle `@mlightcad/cad-viewer`. After you pick a OneDrive 
 4. The drawing is parsed and rendered **in the visitor’s browser**
 
 Local embed testing: set `VITE_MLIGHTCAD_EMBED_URL` to your local embed page (for example `http://localhost:5174/embed.html`).
+
+Header and footer are loaded from the marketing site (`/site-chrome.js`), not copied in this repo. Production uses `https://mlightcad.com/site-chrome.js`. For a local chrome, run the mlightcad.com homepage on another port and set `VITE_SITE_CHROME_ORIGIN` (for example `http://localhost:5174`). The privacy page follows the same `mlightcad-locale` setting as the rest of mlightcad.com (English, Chinese, Japanese, Korean, Spanish, Portuguese, Russian, Czech).
 
 ## Security
 

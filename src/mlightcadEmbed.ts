@@ -1,3 +1,5 @@
+import { detectSiteLocale, embedLocale } from './i18n'
+
 const DEFAULT_EMBED_URL = 'https://mlightcad.com/embed.html'
 
 export const EMBED_READY_TYPE = 'mlightcad-embed:ready'
@@ -19,6 +21,6 @@ export function buildMlightcadEmbedUrl(): string {
   const embedUrl = new URL(getMlightcadEmbedBaseUrl())
   embedUrl.searchParams.set('mode', 'review')
   embedUrl.searchParams.set('toolbar', '1')
-  embedUrl.searchParams.set('locale', 'en')
+  embedUrl.searchParams.set('locale', embedLocale(detectSiteLocale()))
   return embedUrl.toString()
 }

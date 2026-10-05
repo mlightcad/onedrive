@@ -8,8 +8,16 @@ import {
   postLocalFileHandlerPreview,
   takeFileHandlerActivation
 } from './fileHandler'
+import {
+  type Copy,
+  detectSiteLocale,
+  HTML_LANG,
+  type Locale,
+  subscribeSiteLocale,
+  t
+} from './i18n'
 import { DriveFile, isConfigured, OneDriveClient } from './oneDrive'
-import { initSiteNav } from './siteNav'
+import { loadSiteChrome } from './siteChrome'
 
 type FileLoadState = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -44,12 +52,53 @@ let selectedFile: DriveFile | null = null
 let loadGeneration = 0
 let fileHandler: FileHandlerActivation | null = null
 const fileHandlerDemo = isLocalFileHandlerDemo()
+let locale: Locale = 'en'
+let authTitleKey: keyof Copy = 'signInContinue'
+let welcomeKey: keyof Copy = 'chooseFile'
+let bootKey: keyof Copy = 'loading'
+let lastLoadState: FileLoadState = 'idle'
+let lastLoadError = ''
+
+function copy(): Copy {
+  return t(locale)
+}
+
+function applyStaticI18n(): void {
+  const dict = copy()
+  document.title = dict.title
+  document.documentElement.lang = HTML_LANG[locale]
+  const meta = document.querySelector('meta[name="description"]')
+  if (meta) meta.setAttribute('content', dict.description)
+
+  authTitle.dataset.i18n = authTitleKey
+  const welcomeCopy = welcome.querySelector('p')
+  if (welcomeCopy) welcomeCopy.dataset.i18n = welcomeKey
+  const bootCopy = bootPanel.querySelector('p')
+  if (bootCopy) bootCopy.dataset.i18n = bootKey
+
+  document.querySelectorAll<HTMLElement>('#app [data-i18n]').forEach(el => {
+    if (el.closest('.nav, .footer')) return
+    const key = el.dataset.i18n as keyof Copy | undefined
+    if (!key) return
+    const value = dict[key]
+    if (typeof value === 'string') el.textContent = value
+  })
+}
+
+function applyI18n(): void {
+  applyStaticI18n()
+  setFileLoadUi(lastLoadState, lastLoadError)
+  if (!configWarning.hidden) updateConfigWarning()
+}
 
 function show(el: HTMLElement, visible: boolean): void {
   el.hidden = !visible
 }
 
 function setFileLoadUi(state: FileLoadState, errorMessage = ''): void {
+  lastLoadState = state
+  lastLoadError = errorMessage
+  const dict = copy()
   const hasFile = Boolean(selectedFile)
   show(welcome, !hasFile && state === 'idle')
 
@@ -57,7 +106,7 @@ function setFileLoadUi(state: FileLoadState, errorMessage = ''): void {
     fileNameEl.textContent = selectedFile.name
     fileNameEl.title = selectedFile.name
   } else {
-    fileNameEl.textContent = 'No file selected'
+    fileNameEl.textContent = dict.noFile
     fileNameEl.title = ''
   }
 
@@ -69,7 +118,7 @@ function setFileLoadUi(state: FileLoadState, errorMessage = ''): void {
     fileStatusEl.textContent = errorMessage
   } else if (state === 'loading') {
     show(fileStatusEl, true)
-    fileStatusEl.textContent = 'Loading…'
+    fileStatusEl.textContent = dict.loadingStatus
   } else {
     show(fileStatusEl, false)
     fileStatusEl.textContent = ''
@@ -103,10 +152,7 @@ function updateUserChip(): void {
 
 function updateConfigWarning(): void {
   if (!isConfigured()) {
-    configWarning.innerHTML =
-      'Microsoft credentials are missing. For local dev, copy <code>env.example</code> to ' +
-      '<code>.env.local</code> and set <code>VITE_MSAL_CLIENT_ID</code>. For GitHub Pages, set ' +
-      'repository secret <code>MSAL_CLIENT_ID</code>, then redeploy.'
+    configWarning.innerHTML = copy().configMissing
     show(configWarning, true)
     return
   }
@@ -117,6 +163,11 @@ function updateConfigWarning(): void {
 
 function renderAuthState(): void {
   show(bootPanel, false)
+
+  if (fileHandler) authTitleKey = 'signInPreview'
+  else if (fileHandlerDemo) authTitleKey = 'signInDemo'
+  else authTitleKey = 'signInContinue'
+  applyStaticI18n()
 
   if (!drive.isAuthenticated) {
     show(authLayout, true)
@@ -147,7 +198,7 @@ async function loadFileBuffer(file: DriveFile): Promise<void> {
   } catch (error) {
     if (generation !== loadGeneration) return
     console.error('Error downloading file:', error)
-    setFileLoadUi('error', 'Could not download this OneDrive file')
+    setFileLoadUi('error', copy().downloadError)
   }
 }
 
@@ -179,13 +230,14 @@ async function handlePickFile(popup: Window): Promise<void> {
     } catch {
       // The picker window may already be gone.
     }
-    const message = error instanceof Error ? error.message : 'Failed to open file picker'
+    const message = error instanceof Error ? error.message : copy().pickerFailed
     if (message !== 'Picker cancelled') {
       console.error(error)
       alert(message)
     }
     if (!selectedFile) {
-      welcome.querySelector('p')!.textContent = 'Choose a DWG or DXF file from OneDrive.'
+      welcomeKey = 'chooseFile'
+      applyStaticI18n()
       setFileLoadUi('idle')
     }
   } finally {
@@ -196,7 +248,7 @@ async function handlePickFile(popup: Window): Promise<void> {
 async function openFileHandlerItem(): Promise<void> {
   const itemUrl = fileHandler?.items[0]
   if (!itemUrl) {
-    throw new Error('OneDrive did not send a file to preview')
+    throw new Error(copy().noFileToPreview)
   }
   show(pickFileBtn, false)
   const details = await drive.getFileFromGraphItemUrl(itemUrl)
@@ -230,7 +282,7 @@ async function handleSignIn(popup?: Window): Promise<void> {
       }
     }
     console.error('Authentication failed:', error)
-    alert(error instanceof Error ? error.message : 'Microsoft authorization failed')
+    alert(error instanceof Error ? error.message : copy().authFailed)
     renderAuthState()
     return
   } finally {
@@ -244,7 +296,7 @@ async function handleSignIn(popup?: Window): Promise<void> {
       await openFileHandlerItem()
     } catch (error) {
       console.error('File Handler preview failed:', error)
-      alert(error instanceof Error ? error.message : 'Failed to preview OneDrive file')
+      alert(error instanceof Error ? error.message : copy().previewFailed)
       renderAuthState()
     }
     return
@@ -287,7 +339,7 @@ async function handleDeepLinkOpen(): Promise<void> {
     await loadFileBuffer(details)
   } catch (error) {
     console.error('Deep-link open failed:', error)
-    alert(error instanceof Error ? error.message : 'Failed to open OneDrive file')
+    alert(error instanceof Error ? error.message : copy().deepLinkFailed)
     renderAuthState()
   }
 }
@@ -297,18 +349,18 @@ signInBtn.addEventListener('click', () => {
     void handleSignIn()
     return
   }
-  const popup = openPickerPopup('Signing in…')
+  const popup = openPickerPopup(copy().signingIn)
   if (!popup) {
-    alert('Popup blocked. Allow popups for this site and try again.')
+    alert(copy().popupBlocked)
     return
   }
   void handleSignIn(popup)
 })
 signOutBtn.addEventListener('click', handleSignOut)
 pickFileBtn.addEventListener('click', () => {
-  const popup = openPickerPopup('Opening OneDrive…')
+  const popup = openPickerPopup(copy().openingOneDrive)
   if (!popup) {
-    alert('Popup blocked. Allow popups for this site and try again.')
+    alert(copy().popupBlocked)
     return
   }
   void handlePickFile(popup)
@@ -321,7 +373,8 @@ async function handleFileHandlerEntry(): Promise<void> {
   if (isInFrame()) {
     document.documentElement.classList.add('is-embedded')
   }
-  authTitle.textContent = 'Sign in to preview this drawing'
+  authTitleKey = 'signInPreview'
+  applyStaticI18n()
 
   show(authLayout, true)
   show(bootPanel, true)
@@ -338,13 +391,20 @@ async function handleFileHandlerEntry(): Promise<void> {
     await openFileHandlerItem()
   } catch (error) {
     console.error('File Handler preview failed:', error)
-    alert(error instanceof Error ? error.message : 'Failed to preview OneDrive file')
+    alert(error instanceof Error ? error.message : copy().previewFailed)
     renderAuthState()
   }
 }
 
 async function boot(): Promise<void> {
-  initSiteNav()
+  await loadSiteChrome()
+  locale = detectSiteLocale()
+  applyI18n()
+  subscribeSiteLocale(next => {
+    if (next === locale) return
+    locale = next
+    applyI18n()
+  })
   fileHandler = takeFileHandlerActivation()
   show(authLayout, true)
   show(bootPanel, true)
@@ -383,7 +443,8 @@ async function boot(): Promise<void> {
 }
 
 async function handleFileHandlerDemoEntry(): Promise<void> {
-  authTitle.textContent = 'Sign in to test File Handler preview'
+  authTitleKey = 'signInDemo'
+  applyStaticI18n()
   show(pickFileBtn, false)
   show(authLayout, true)
   show(bootPanel, true)
@@ -403,8 +464,8 @@ async function continueFileHandlerDemo(): Promise<void> {
   show(authLayout, true)
   show(bootPanel, true)
   show(authPanel, false)
-  const bootCopy = bootPanel.querySelector('p')
-  if (bootCopy) bootCopy.textContent = 'Looking for a DWG or DXF in OneDrive…'
+  bootKey = 'demoBoot'
+  applyStaticI18n()
 
   try {
     const itemUrl = await drive.findCadPreviewItemUrl()
@@ -414,12 +475,12 @@ async function continueFileHandlerDemo(): Promise<void> {
     }
     renderAuthState()
     show(pickFileBtn, true)
-    welcome.querySelector('p')!.textContent =
-      'No DWG/DXF found automatically. Choose one to continue the File Handler test.'
+    welcomeKey = 'demoNoFile'
+    applyStaticI18n()
     setFileLoadUi('idle')
   } catch (error) {
     console.error('File Handler demo failed:', error)
-    alert(error instanceof Error ? error.message : 'Failed to start File Handler demo')
+    alert(error instanceof Error ? error.message : copy().demoFailed)
     renderAuthState()
   }
 }

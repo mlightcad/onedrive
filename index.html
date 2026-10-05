@@ -19,45 +19,13 @@
     <div id="app">
       <!-- Sign-in / boot (centered) -->
       <main id="auth-layout" class="auth-layout" hidden>
-        <header class="nav">
-          <div class="nav__inner">
-            <a class="nav__brand" href="https://mlightcad.com/">MLight<span>CAD</span></a>
-            <button class="nav__toggle" type="button" aria-label="Menu" aria-expanded="false" data-nav-toggle>
-              <span></span>
-            </button>
-            <ul class="nav__links" data-nav-links>
-              <li>
-                <a href="%BASE_URL%privacy.html" target="_blank" rel="noopener">Privacy</a>
-              </li>
-              <li>
-                <a href="https://cad-viewer.readthedocs.io/en/latest/" target="_blank" rel="noopener">Docs</a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/mlightcad/onedrive"
-                  target="_blank"
-                  rel="noopener"
-                  >GitHub</a
-                >
-              </li>
-            </ul>
-            <div class="nav__actions">
-              <a
-                class="btn btn--primary btn--nav"
-                href="https://mlightcad.github.io/cad-viewer/"
-                target="_blank"
-                rel="noopener"
-                >Live Demo</a
-              >
-            </div>
-          </div>
-        </header>
+        <div data-site-nav></div>
 
         <div class="auth-layout__body">
           <header class="app-header">
-            <p class="app-header__eyebrow">MLightCAD · OneDrive</p>
-            <h1>OneDrive CAD Viewer</h1>
-            <p>
+            <p class="app-header__eyebrow" data-i18n="eyebrow">MLightCAD · OneDrive</p>
+            <h1 data-i18n="heading">OneDrive CAD Viewer</h1>
+            <p data-i18n="lead">
               Open DWG/DXF from OneDrive in your browser. Only files you
               choose; nothing is uploaded to our servers.
             </p>
@@ -65,11 +33,11 @@
 
           <section id="boot-panel" class="panel center-panel" hidden>
             <div class="spinner" aria-hidden="true"></div>
-            <p>Loading…</p>
+            <p data-i18n="loading">Loading…</p>
           </section>
 
           <section id="auth-panel" class="panel auth-panel" hidden>
-            <h2 id="auth-title">Sign in to continue</h2>
+            <h2 id="auth-title" data-i18n="signInContinue">Sign in to continue</h2>
             <div id="config-warning" class="alert alert-warning" hidden></div>
             <button id="sign-in-btn" type="button" class="btn-microsoft" disabled>
               <span class="btn-microsoft__icon" aria-hidden="true">
@@ -80,25 +48,15 @@
                   <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
                 </svg>
               </span>
-              <span class="btn-microsoft__label">Sign in with Microsoft</span>
+              <span class="btn-microsoft__label" data-i18n="signInMicrosoft">Sign in with Microsoft</span>
             </button>
             <p class="auth-footer muted">
-              <a href="%BASE_URL%privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+              <a href="%BASE_URL%privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicy">Privacy Policy</a>
             </p>
           </section>
         </div>
 
-        <footer class="footer">
-          <div class="shell footer__inner">
-            <a class="footer__brand" href="https://mlightcad.com/">MLight<span>CAD</span></a>
-            <p class="footer__tagline">Open-source CAD infrastructure for the web.</p>
-            <p class="footer__links">
-              <a href="%BASE_URL%privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
-              <a href="https://mlightcad.com/" target="_blank" rel="noopener">mlightcad.com</a>
-            </p>
-            <p class="footer__copy">© 2026 MLightCAD</p>
-          </div>
-        </footer>
+        <div data-site-footer></div>
       </main>
 
       <!-- Authenticated: toolbar + fullscreen viewer -->
@@ -118,12 +76,13 @@
               href="%BASE_URL%privacy.html"
               target="_blank"
               rel="noopener"
+              data-i18n="privacy"
               >Privacy</a
             >
-            <button id="pick-file-btn" type="button" class="btn btn-primary">
+            <button id="pick-file-btn" type="button" class="btn btn-primary" data-i18n="pickFile">
               Choose from OneDrive
             </button>
-            <button id="sign-out-btn" type="button" class="btn btn-ghost">
+            <button id="sign-out-btn" type="button" class="btn btn-ghost" data-i18n="signOut">
               Sign Out
             </button>
           </div>
@@ -131,17 +90,17 @@
 
         <div id="viewer-host" class="viewer-host">
           <div id="welcome" class="welcome">
-            <p>Choose a DWG or DXF file from OneDrive.</p>
+            <p data-i18n="chooseFile">Choose a DWG or DXF file from OneDrive.</p>
           </div>
 
           <div id="viewer-overlay" class="viewer-overlay" hidden>
             <div id="overlay-loading" class="overlay-block">
               <div class="spinner" aria-hidden="true"></div>
-              <p>Loading file from OneDrive…</p>
+              <p data-i18n="overlayLoading">Loading file from OneDrive…</p>
             </div>
             <div id="overlay-error" class="overlay-block" hidden>
               <p id="overlay-error-text"></p>
-              <button id="retry-btn" type="button" class="btn btn-primary">Retry</button>
+              <button id="retry-btn" type="button" class="btn btn-primary" data-i18n="retry">Retry</button>
             </div>
           </div>
         </div>
