@@ -154,20 +154,24 @@ async function refreshUserChipSoon(): Promise<void> {
   }
 }
 
-async function handlePickFile(): Promise<void> {
+async function handlePickFile(popup: Window): Promise<void> {
   pickFileBtn.disabled = true
   try {
-    const file = await drive.openFilePicker()
+    const file = await drive.openFilePicker(popup)
     await loadFileBuffer(file)
   } catch (error) {
+    try {
+      if (!popup.closed) popup.close()
+    } catch {
+      // The picker window may already be gone.
+    }
     const message = error instanceof Error ? error.message : 'Failed to open file picker'
     if (message !== 'Picker cancelled') {
       console.error(error)
       alert(message)
     }
     if (!selectedFile) {
-      welcome.querySelector('p')!.textContent =
-        'No file selected. Use “Choose from OneDrive” to open a drawing.'
+      welcome.querySelector('p')!.textContent = 'Choose a DWG or DXF file from OneDrive.'
       setFileLoadUi('idle')
     }
   } finally {
@@ -213,9 +217,7 @@ async function handleSignIn(): Promise<void> {
       alert(error instanceof Error ? error.message : 'Failed to preview OneDrive file')
       renderAuthState()
     }
-    return
   }
-  await handlePickFile()
 }
 
 function handleSignOut(): void {
@@ -257,7 +259,14 @@ signInBtn.addEventListener('click', () => {
 })
 signOutBtn.addEventListener('click', handleSignOut)
 pickFileBtn.addEventListener('click', () => {
-  void handlePickFile()
+  const popup = window.open('', 'OneDrivePicker', 'width=1080,height=680')
+  if (!popup) {
+    alert('Popup blocked. Allow popups for this site and try again.')
+    return
+  }
+  popup.document.title = 'OneDrive'
+  popup.document.body.textContent = 'Opening OneDrive…'
+  void handlePickFile(popup)
 })
 retryBtn.addEventListener('click', () => {
   if (selectedFile) void loadFileBuffer(selectedFile)

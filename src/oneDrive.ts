@@ -554,8 +554,21 @@ export class OneDriveClient {
   /**
    * Opens Microsoft’s OneDrive / SharePoint File Picker v8 and resolves with the chosen CAD file.
    */
-  openFilePicker(): Promise<DriveFile> {
+  openFilePicker(win: Window): Promise<DriveFile> {
     return new Promise((resolve, reject) => {
+      const closePopup = () => {
+        try {
+          if (!win.closed) win.close()
+        } catch {
+          // ignore
+        }
+      }
+
+      if (win.closed) {
+        reject(new Error('Popup blocked. Allow popups for this site and try again.'))
+        return
+      }
+
       void this.initialize()
         .then(async () => {
           if (!this.isAuthenticated) {
@@ -566,11 +579,6 @@ export class OneDriveClient {
           }
 
           const channelId = newChannelId()
-          const win = window.open('', 'OneDrivePicker', 'width=1080,height=680')
-          if (!win) {
-            reject(new Error('Popup blocked. Allow popups for this site and try again.'))
-            return
-          }
 
           let settled = false
           let port: MessagePort | null = null
@@ -721,7 +729,10 @@ export class OneDriveClient {
             )
           }
         })
-        .catch(reject)
+        .catch(error => {
+          closePopup()
+          reject(error instanceof Error ? error : new Error('Failed to open OneDrive picker'))
+        })
     })
   }
 
