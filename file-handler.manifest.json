@@ -1,0 +1,14 @@
+{
+  "id": "c4578f29-473a-47fa-b2d2-a92556b9748f",
+  "type": "FileHandler",
+  "properties": [
+    {
+      "key": "version",
+      "value": "2"
+    },
+    {
+      "key": "actions",
+      "value": "[{\"type\":\"preview\",\"url\":\"https://mlightcad.com/onedrive/preview\",\"availableOn\":{\"file\":{\"extensions\":[\".dwg\",\".dxf\"]},\"web\":{}}}]"
+    }
+  ]
+}

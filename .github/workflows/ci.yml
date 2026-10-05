@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck and build
+        run: pnpm build
+        env:
+          # Placeholders are enough for compile/bundle; real secrets stay on deploy.
+          VITE_MSAL_CLIENT_ID: 00000000-0000-0000-0000-000000000000
+          VITE_MSAL_TENANT_ID: common
+          VITE_MSAL_REDIRECT_URI: http://localhost:5173/onedrive/

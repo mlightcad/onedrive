@@ -1,0 +1,35 @@
+{
+  "name": "@mlightcad/onedrive-cad-viewer",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mlightcad/onedrive"
+  },
+  "scripts": {
+    "build": "tsc && vite build",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "dev": "vite",
+    "lint": "eslint src/",
+    "lint:fix": "eslint --fix --quiet src/",
+    "preview": "vite preview",
+    "start": "node server/start.mjs"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^4.12.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.1",
+    "eslint": "^9.9.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "globals": "^15.9.0",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.5.2",
+    "typescript-eslint": "^8.4.0",
+    "vite": "^5.4.19"
+  }
+}
