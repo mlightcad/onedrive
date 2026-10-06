@@ -255,8 +255,18 @@ async function openFileHandlerItem(): Promise<void> {
   await loadFileBuffer(details)
 }
 
+function centeredPopupFeatures(width: number, height: number): string {
+  const parentLeft = window.screenLeft ?? window.screenX
+  const parentTop = window.screenTop ?? window.screenY
+  const parentWidth = window.outerWidth || window.innerWidth
+  const parentHeight = window.outerHeight || window.innerHeight
+  const left = Math.round(parentLeft + (parentWidth - width) / 2)
+  const top = Math.round(parentTop + (parentHeight - height) / 2)
+  return `width=${width},height=${height},left=${left},top=${top}`
+}
+
 function openPickerPopup(message: string): Window | null {
-  const popup = window.open('', 'OneDrivePicker', 'width=1080,height=680')
+  const popup = window.open('', 'OneDrivePicker', centeredPopupFeatures(1080, 680))
   if (!popup) return null
   popup.document.title = 'OneDrive'
   popup.document.body.textContent = message
